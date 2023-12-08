@@ -5,11 +5,10 @@ using UnityEngine;
 public class TopDownShooting : MonoBehaviour
 {
     private TopDownCharacterController _contoller;
-
+    private ProjectileManager _projectileManager;
     [SerializeField] private Transform projectileSpawnPosition;
     private Vector2 _aimDirection = Vector2.right;
 
-    public GameObject testPrefab;
 
     private void Awake()
     {
@@ -19,6 +18,7 @@ public class TopDownShooting : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        _projectileManager = ProjectileManager.instance;
         _contoller.OnAttackEvent += OnShoot;
         _contoller.OnLookEvent += OnAim;
     }
@@ -28,21 +28,39 @@ public class TopDownShooting : MonoBehaviour
         _aimDirection = newAimDirection;
     }
 
-    private void OnShoot()
+    private void OnShoot(AttackSO attackSO)
     {
-        CreateProjecttile();
+
+        RangedAttackData rangedAttackData = attackSO as RangedAttackData;
+        float projectilesAngleSpace = rangedAttackData.multipleProjectilesAngel;
+        int numberOfProjectilesPerShot = rangedAttackData.numberofProjectilesPerShot;
+
+        float minAngle = -(numberOfProjectilesPerShot / 2f) * projectilesAngleSpace + 0.5f * rangedAttackData.multipleProjectilesAngel;
+
+
+        for (int i = 0; i < numberOfProjectilesPerShot; i++)
+        {
+            float angle = minAngle + projectilesAngleSpace * i;
+            float randomSpread = Random.Range(-rangedAttackData.spread, rangedAttackData.spread);
+            angle += randomSpread;
+            CreateProjectile(rangedAttackData, angle);
+        }
+
+
     }
 
-    private void CreateProjecttile()
+    private void CreateProjectile(RangedAttackData rangedAttackData, float angle)
     {
-        Instantiate(testPrefab, projectileSpawnPosition.position, Quaternion.identity);
-    }
-    // Start is called before the first frame update
- 
 
-    // Update is called once per frame
-    void Update()
-    {
-        
+        _projectileManager.ShootBullet(
+           projectileSpawnPosition.position,
+           RotateVector2(_aimDirection, angle),
+           rangedAttackData
+           );
     }
+    private static Vector2 RotateVector2(Vector2 v, float degree)
+    {
+        return Quaternion.Euler(0, 0, degree) * v;
+    }
+
 }
